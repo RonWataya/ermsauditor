@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://localhost:8000/api';
+const API_BASE_URL = 'https://miwalletmw.com:8000/api';
 const currentUser = JSON.parse(localStorage.getItem('currentUser'));
 
 // Check if user is logged in and is an 'admin'
@@ -7,6 +7,13 @@ if (!currentUser || currentUser.role !== 'admin') {
     localStorage.clear();
     window.location.href = 'index.html'; // Or whatever your login page is named
 }
+
+const logoutBtn = document.getElementById('logout-btn');
+logoutBtn.addEventListener('click', () => {
+    localStorage.clear(); // Clear stored session
+    window.location.href = 'index.html'; // Redirect to login page
+});
+
 
 const districtSelect = document.getElementById('district-select');
 const constituencySelect = document.getElementById('constituency-select');
@@ -73,7 +80,7 @@ async function fetchPresidentialPieChartData() {
 
     const labels = presidentialResults.map(r => `${r.candidate_name} (${r.party})`);
     const data = presidentialResults.map(r => r.total_votes);
-    const partyColors = { 'DPP':'#2563eb','UTM':'#ef4444','UDF':'#facc15','PP':'#f97316','MCP':'#16a34a' };
+    const partyColors = { 'DPP':'#2563eb','UTM':'#f82727ff','UDF':'#facc15','PP':'#fc9145ff','MCP':'#dd2525ff' };
     const fallbackColors = ['#8b5cf6','#0ea5e9','#14b8a6','#84cc16','#ec4899','#10b981'];
     const backgroundColors = presidentialResults.map((r,i) => partyColors[r.party] || fallbackColors[i % fallbackColors.length]);
 

@@ -6,107 +6,145 @@
     <title>ERMS Auditor</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.2/css/all.min.css" rel="stylesheet">
+
     <style>
         body {
             font-family: 'Inter', sans-serif;
-            background-color: #f3f4f6;
+            background-color: #f9fafb;
         }
+
+        /* Submissions list */
         .submission-item {
             cursor: pointer;
             transition: all 0.2s ease;
+            border-left: 4px solid transparent;
         }
-        .submission-item:hover {
-            background-color: #f1f5f9;
+        .submission-item:hover { 
+            background-color: #f1f5f9; 
         }
-        .submission-item.active {
-            background-color: #e2e8f0;
-            border-left: 4px solid #3b82f6;
+        .submission-item.active { 
+            background-color: #e2e8f0; 
+            border-left: 4px solid #3b82f6; 
         }
-        .submission-item.verified {
-            background-color: #dcfce7; /* Light green */
+        .submission-item.verified { 
+            background-color: #dcfce7; 
         }
-        .submission-item.rejected {
-            background-color: #fee2e2; /* Light red */
+        .submission-item.rejected { 
+            background-color: #fee2e2; 
         }
-        .submission-item.unverified {
-            background-color: #fef9c3; /* Light yellow */
+        .submission-item.unverified { 
+            background-color: #fef9c3; 
         }
-        /* Lock the buttons visually and functionally */
-        #verify-btn:disabled,
-        #reject-btn:disabled {
+
+        /* Election Tabs - New Styling */
+        .election-tab {
+            padding-left: 1rem;
+            padding-right: 1rem;
+            padding-top: 0.5rem;
+            padding-bottom: 0.5rem;
+            border-radius: 0.5rem;
+            font-weight: 500;
+            cursor: pointer;
+            transition-property: all;
+            transition-duration: 300ms;
+            transition-timing-function: cubic-bezier(0.4, 0, 0.2, 1);
+            /* Default state for unverified */
+            background-color: #fef9c3;
+            color: #a16207;
+        }
+        .election-tab:hover {
+            background-color: #dbeafe;
+            color: #1e40af;
+        }
+        .election-tab.active {
+            background-color: #3b82f6;
+            color: white;
+        }
+        /* Verified State */
+        .election-tab.verified {
+            background-color: #dcfce7;
+            color: #15803d;
+        }
+        .election-tab.verified.active {
+            background-color: #16a34a;
+            color: white;
+        }
+        /* Rejected State */
+        .election-tab.rejected {
+            background-color: #fee2e2;
+            color: #b91c1c;
+        }
+        .election-tab.rejected.active {
+            background-color: #ef4444;
+            color: white;
+        }
+
+        /* Form Status */
+        .grayed-out {
+            opacity: 0.7;
+            pointer-events: none;
+        }
+
+        #verify-btn:disabled, #reject-btn:disabled {
             opacity: 0.5;
             cursor: not-allowed;
-        }
-        /* Custom styling for the tab buttons */
-        .tab-button.btn-success {
-            background-color: #22c55e;
-            color: #fff;
-        }
-        .tab-button.btn-danger {
-            background-color: #ef4444;
-            color: #fff;
-        }
-        .tab-button.btn-primary {
-            background-color: #3b82f6;
-            color: #fff;
-        }
-        .tab-button.btn-outline-primary {
-            background-color: transparent;
-            color: #3b82f6;
-            border: 1px solid #3b82f6;
         }
     </style>
 </head>
 <body class="bg-gray-100">
 
-    <header class="bg-blue-600 text-white p-4 shadow-lg">
+    <header class="bg-gradient-to-r from-blue-700 to-blue-600 text-white p-4 shadow-md">
         <div class="container mx-auto flex justify-between items-center">
-            <h2 class="text-2xl font-bold">ERMS Auditor</h2>
-            <div class="flex gap-4">
-                <button id="refresh-btn" class="py-1 px-3 rounded-md bg-blue-700 hover:bg-blue-800 transition-colors duration-200">
+            <h2 class="text-2xl font-bold tracking-wide flex items-center gap-2">
+                <i class="fa-solid fa-user-shield"></i> ERMS Auditor
+            </h2>
+            <div class="flex items-center gap-4">
+                <button id="refresh-btn" class="px-4 py-2 rounded-lg bg-white/20 hover:bg-white/30 transition flex items-center gap-2">
                     <i class="fa-solid fa-arrows-rotate"></i> Refresh
                 </button>
-                <button id="logout-btn" class="py-1 px-3 rounded-md bg-blue-700 hover:bg-blue-800 transition-colors duration-200">
+                <button id="logout-btn" class="px-4 py-2 rounded-lg bg-red-500 hover:bg-red-600 transition flex items-center gap-2">
                     <i class="fa-solid fa-right-from-bracket"></i> Logout
                 </button>
             </div>
         </div>
     </header>
 
-    <main class="container mx-auto my-6 p-4">
-        <div class="bg-white p-4 rounded-lg shadow-md mb-6">
+    <main class="container mx-auto my-8 px-4">
+        <div class="bg-white p-6 rounded-lg shadow-md mb-6">
+            <h3 class="text-lg font-semibold mb-4 text-gray-700 flex items-center gap-2">
+                <i class="fa-solid fa-filter"></i> Filters
+            </h3>
             <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-5 gap-4">
                 <div>
                     <label for="filter-district" class="text-gray-600 text-sm">District</label>
-                    <select id="filter-district" class="form-select w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-district" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">All Districts</option>
                     </select>
                 </div>
                 <div>
                     <label for="filter-constituency" class="text-gray-600 text-sm">Constituency</label>
-                    <select id="filter-constituency" class="form-select w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-constituency" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">All Constituencies</option>
                     </select>
                 </div>
                 <div>
                     <label for="filter-ward" class="text-gray-600 text-sm">Ward</label>
-                    <select id="filter-ward" class="form-select w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-ward" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">All Wards</option>
                     </select>
                 </div>
                 <div>
                     <label for="filter-center" class="text-gray-600 text-sm">Polling Center</label>
-                    <select id="filter-center" class="form-select w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-center" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">All Centers</option>
                     </select>
                 </div>
                 <div>
                     <label for="filter-status" class="text-gray-600 text-sm">Submission Status</label>
-                    <select id="filter-status" class="form-select w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500">
+                    <select id="filter-status" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500">
                         <option value="">All Submissions</option>
                         <option value="unverified">Unverified</option>
                         <option value="verified">Verified</option>
-                        <option value="rejected">Rejected</option>
                     </select>
                 </div>
             </div>
@@ -114,74 +152,82 @@
 
         <div class="flex flex-col lg:flex-row gap-6">
             <div class="lg:w-1/3 bg-white rounded-lg shadow-md overflow-hidden flex flex-col h-[70vh]">
-                <h5 class="p-4 border-b text-lg font-semibold">Submissions</h5>
-                <div id="submissions-list" class="flex-grow overflow-y-auto">
-                    </div>
+                <h5 class="p-4 border-b text-lg font-semibold bg-gray-50">Submissions</h5>
+                <div id="submissions-list" class="flex-grow overflow-y-auto"></div>
             </div>
 
             <div class="lg:w-2/3 bg-white rounded-lg shadow-md p-6">
                 <div id="no-submission-message" class="text-center p-12 text-gray-400">
-                    <h4 class="text-2xl font-bold mb-2">Select a Submission to View Details</h4>
-                    <p class="text-lg">Use the filters to find and select a submission from the list on the left.</p>
+                    <i class="fa-solid fa-folder-open text-5xl mb-3"></i>
+                    <h4 class="text-2xl font-bold mb-2">No Submission Selected</h4>
+                    <p class="text-lg">Use filters and click a submission to see details here.</p>
                 </div>
+
                 <div id="submission-details" class="hidden">
                     <div class="flex justify-between items-center mb-4">
-                        <h4 id="polling-center-title" class="text-xl font-bold"></h4>
+                        <h4 id="polling-center-title" class="text-xl font-bold text-gray-700"></h4>
                         <button id="close-btn" class="text-gray-500 hover:text-gray-800">
                             <i class="fa-solid fa-xmark text-2xl"></i>
                         </button>
                     </div>
 
-                    <div class="flex items-center gap-2 mb-4">
-                        <span class="text-gray-500 text-sm">Monitored by:</span>
+                    <div class="flex items-center gap-2 mb-4 text-sm">
+                        <span class="text-gray-500">Monitored by:</span>
                         <span id="monitor-info" class="text-gray-700 font-medium"></span>
                     </div>
 
-                    <div id="election-tabs" class="flex gap-2 mb-4 overflow-x-auto"></div>
+                    <div id="election-tabs" class="flex gap-2 mb-6 overflow-x-auto"></div>
 
                     <div class="grid grid-cols-1 md:grid-cols-2 gap-6">
                         <div class="md:border-r md:pr-6">
-                            <h5 class="text-lg font-semibold mb-4">Voting Sheet</h5>
+                            <h5 class="text-lg font-semibold mb-4 text-blue-600 flex items-center gap-2">
+                                <i class="fa-solid fa-file-lines"></i> Voting Sheet
+                            </h5>
                             <form id="audit-form">
                                 <div class="overflow-x-auto">
-                                    <table class="w-full text-sm text-left text-gray-500">
-                                        <thead class="text-xs text-gray-700 uppercase bg-gray-50">
+                                    <table class="w-full text-sm text-left text-gray-600 border">
+                                        <thead class="text-xs uppercase bg-gray-50">
                                             <tr>
-                                                <th scope="col" class="py-2 px-4">Candidate</th>
-                                                <th scope="col" class="py-2 px-4">Party</th>
-                                                <th scope="col" class="py-2 px-4">Votes</th>
+                                                <th class="py-2 px-4">Candidate</th>
+                                                <th class="py-2 px-4">Party</th>
+                                                <th class="py-2 px-4">Votes</th>
                                             </tr>
                                         </thead>
                                         <tbody id="candidates-table"></tbody>
                                     </table>
                                 </div>
+
                                 <div class="mt-4 space-y-3">
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Total Votes Cast</label>
-                                        <input id="total-votes" type="number" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                        <input id="total-votes" type="number" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500" required>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Invalid Votes</label>
-                                        <input id="invalid-votes" type="number" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                        <input id="invalid-votes" type="number" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500" required>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Unused Ballots</label>
-                                        <input id="unused-ballots" type="number" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                        <input id="unused-ballots" type="number" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500" required>
                                     </div>
                                     <div>
                                         <label class="block text-sm font-medium text-gray-700">Total Registered Voters</label>
-                                        <input id="total-registered" type="number" class="w-full mt-1 p-2 border border-gray-300 rounded-md focus:outline-none focus:ring-2 focus:ring-blue-500" required>
+                                        <input id="total-registered" type="number" class="w-full mt-1 p-2 border rounded-md focus:ring-2 focus:ring-blue-500" required>
                                     </div>
                                 </div>
+
                                 <div class="flex gap-4 mt-6">
-                                    <button type="submit" id="verify-btn" class="w-full py-2 px-4 rounded-md text-white bg-green-500 hover:bg-green-600 focus:outline-none focus:ring-2 focus:ring-green-500 focus:ring-offset-2">Verify & Save</button>
-                                   
+                                    <button type="submit" id="verify-btn" class="w-full py-2 px-4 rounded-md text-white bg-green-500 hover:bg-green-600 focus:ring-2 focus:ring-green-500">
+                                        <i class="fa-solid fa-check-circle"></i> Verify & Save
+                                    </button>
                                 </div>
                             </form>
                         </div>
-                        
+
                         <div>
-                            <h5 class="text-lg font-semibold mb-4">Uploaded Tally Sheet</h5>
+                            <h5 class="text-lg font-semibold mb-4 text-purple-600 flex items-center gap-2">
+                                <i class="fa-solid fa-image"></i> Uploaded Tally Sheet
+                            </h5>
                             <div class="bg-gray-50 rounded-lg p-4 flex items-center justify-center min-h-[400px]">
                                 <img id="tally-img" class="max-h-full max-w-full rounded-md object-contain" alt="Tally Sheet">
                             </div>
@@ -193,16 +239,20 @@
     </main>
 
     <div id="message-box" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-[1070] hidden">
-        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full">
-            <div id="message-text" class="text-lg mb-4 text-center"></div>
-            <button id="message-ok-btn" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600 focus:outline-none focus:ring-2 focus:ring-blue-500">OK</button>
+        <div class="bg-white p-6 rounded-lg shadow-xl max-w-sm w-full text-center">
+            <i class="fa-solid fa-circle-info text-blue-500 text-3xl mb-3"></i>
+            <div id="message-text" class="text-lg mb-4"></div>
+            <button id="message-ok-btn" class="w-full px-4 py-2 bg-blue-500 text-white rounded-md hover:bg-blue-600">OK</button>
         </div>
     </div>
 
     <div id="loading-overlay" class="fixed inset-0 bg-gray-600 bg-opacity-50 flex items-center justify-center z-[1050] hidden">
-        <div class="text-white text-xl font-semibold">Loading...</div>
+        <div class="flex flex-col items-center text-white">
+            <i class="fa-solid fa-spinner fa-spin text-3xl mb-3"></i>
+            <p class="text-lg font-medium">Loading...</p>
+        </div>
     </div>
 
-<script src="app.js"></script>
+    <script src="app.js"></script>
 </body>
 </html>

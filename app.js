@@ -15,32 +15,27 @@ document.addEventListener("DOMContentLoaded", () => {
         "AuditorSouth": [25, 26, 28, 29, 30, 31, 32, 33, 34, 35, 36]
     };
 
-    // Get the district IDs for the current logged-in auditor
     const allowedDistricts = auditorDistrictMap[currentUser.username] || [];
 
-    // Function to handle logout
     function logout() {
         localStorage.clear();
         window.location.href = 'index.html';
     }
 
-    // Manual refresh button event listener
     const refreshBtn = document.getElementById('refresh-btn');
     refreshBtn.addEventListener('click', () => {
-        window.location.reload();
+        // Instead of reloading the entire page, we just refresh the data
+        loadSubmissions(true);
     });
 
-    // Attach the logout function to the logout button
     document.getElementById('logout-btn').addEventListener('click', logout);
 
-    // Show/hide loading overlay
     function showLoading(show = true) {
         const overlay = document.getElementById("loading-overlay");
         if (show) overlay.classList.remove("hidden");
         else overlay.classList.add("hidden");
     }
 
-    // Show custom message box
     function showMessage(message, onOk = null) {
         const box = document.getElementById("message-box");
         const text = document.getElementById("message-text");
@@ -60,7 +55,6 @@ document.addEventListener("DOMContentLoaded", () => {
     const noSubmissionMessage = document.getElementById("no-submission-message");
     const submissionDetails = document.getElementById("submission-details");
     const verifyBtn = document.getElementById("verify-btn");
-    const rejectBtn = document.getElementById("reject-btn");
 
     const filterDistrict = document.getElementById("filter-district");
     const filterConstituency = document.getElementById("filter-constituency");
@@ -70,13 +64,13 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let currentSession = null;
     let currentElection = null;
+    let previousSessionId = null;
 
-    // Helper function to fetch data from API
     async function fetchData(url) {
         showLoading(true);
         try {
             const res = await fetch(url);
-            if (!res.ok) throw new Error(`HTTP error! status: ${res.status}`);
+            if (!res.ok) throw new Error('HTTP error! status: ' + res.status);
             return await res.json();
         } catch (error) {
             console.error("Fetch error:", error);
@@ -87,12 +81,9 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     }
 
-    // Populate filter dropdowns
-   // Populate filter dropdowns
     async function populateFilters() {
-        const districts = await fetchData(`http://localhost:8000/api/districts?districtIds=${allowedDistricts.join(',')}`);
-        
-        // Clear existing options, preserving the "All" option
+        const districts = await fetchData('https://miwalletmw.com:8000/api/districts?districtIds=' + allowedDistricts.join(','));
+
         const initialOption = filterDistrict.querySelector('option[value=""]');
         filterDistrict.innerHTML = '';
         if (initialOption) filterDistrict.appendChild(initialOption);
@@ -101,7 +92,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         filterDistrict.addEventListener("change", async () => {
             const districtId = filterDistrict.value;
-            const constituencies = districtId ? await fetchData(`http://localhost:8000/api/constituencies?districtId=${districtId}`) : [];
+            const constituencies = districtId ? await fetchData('https://miwalletmw.com:8000/api/constituencies?districtId=' + districtId) : [];
             populateSelect(filterConstituency, constituencies, 'constituency_id', 'constituency_name');
             populateSelect(filterWard, [], 'ward_id', 'ward_name');
             populateSelect(filterCenter, [], 'polling_center_id', 'polling_center_name');
@@ -110,7 +101,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         filterConstituency.addEventListener("change", async () => {
             const constituencyId = filterConstituency.value;
-            const wards = constituencyId ? await fetchData(`http://localhost:8000/api/wards?constituencyId=${constituencyId}`) : [];
+            const wards = constituencyId ? await fetchData('https://miwalletmw.com:8000/api/wards?constituencyId=' + constituencyId) : [];
             populateSelect(filterWard, wards, 'ward_id', 'ward_name');
             populateSelect(filterCenter, [], 'polling_center_id', 'polling_center_name');
             loadSubmissions();
@@ -118,7 +109,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
         filterWard.addEventListener("change", async () => {
             const wardId = filterWard.value;
-            const pollingCenters = wardId ? await fetchData(`http://localhost:8000/api/polling_centers?wardId=${wardId}`) : [];
+            const pollingCenters = wardId ? await fetchData('https://miwalletmw.com:8000/api/polling_centers?wardId=' + wardId) : [];
             populateSelect(filterCenter, pollingCenters, 'polling_center_id', 'polling_center_name');
             loadSubmissions();
         });
@@ -134,7 +125,7 @@ document.addEventListener("DOMContentLoaded", () => {
         else {
             const allOption = document.createElement("option");
             allOption.value = "";
-            allOption.innerText = `All ${textKey.replace('_id', '').replace('_', ' ')}s`;
+            allOption.innerText = "All " + textKey.replace('_id', '').replace('_', ' ') + "s";
             selectElement.appendChild(allOption);
         }
         data.forEach(item => {
@@ -145,29 +136,34 @@ document.addEventListener("DOMContentLoaded", () => {
         });
     }
 
-    // Load submissions based on filters and auditor's districts
-    async function loadSubmissions() {
+    async function loadSubmissions(isRefresh = false) {
+        // Store the ID of the currently active session before refreshing
+        const activeSessionItem = document.querySelector('.submission-item.active');
+        const activeSessionId = activeSessionItem ? activeSessionItem.dataset.id : null;
+
         const filters = {
             districtId: filterDistrict.value,
             constituencyId: filterConstituency.value,
             wardId: filterWard.value,
             pollingCenterId: filterCenter.value,
             status: filterStatus.value,
-            allowedDistricts: allowedDistricts.join(',') // Add allowed districts to the filter
+            allowedDistricts: allowedDistricts.join(',')
         };
         const params = new URLSearchParams(filters).toString();
-        const submissions = await fetchData(`http://localhost:8000/api/submissions?${params}`);
+        const submissions = await fetchData('https://miwalletmw.com:8000/api/submissions?' + params);
 
         submissionsList.innerHTML = "";
         if (submissions.length === 0) {
-            submissionsList.innerHTML = `<p class="text-center text-gray-500 p-4">No submissions found.</p>`;
+            submissionsList.innerHTML = '<p class="text-center text-gray-500 p-4">No submissions found.</p>';
+            submissionDetails.classList.add("hidden");
+            noSubmissionMessage.classList.remove("hidden");
         } else {
             submissions.forEach(session => {
                 const div = document.createElement("div");
                 const pollingCenterName = session.polling_center_name || 'N/A';
                 let statusClass = '';
                 let statusIcon = '';
-                
+
                 const verified = session.verified_count;
                 const rejected = session.rejected_count;
                 const total = session.total_elections;
@@ -183,25 +179,30 @@ document.addEventListener("DOMContentLoaded", () => {
                     statusIcon = '<i class="fa-solid fa-hourglass-half text-yellow-500"></i>';
                 }
 
-                div.className = `submission-item p-4 border-b last:border-b-0 flex items-center gap-4 ${statusClass}`;
+                div.className = 'submission-item p-4 border-b last:border-b-0 flex items-center gap-4 ' + statusClass;
                 div.dataset.id = session.session_id;
-                div.innerHTML = `
-                    <div class="flex-grow">
-                        <h6 class="text-sm font-semibold">${pollingCenterName}</h6>
-                        <p class="text-xs text-gray-500">${session.district_name || 'N/A'}, ${session.constituency_name || 'N/A'}</p>
-                    </div>
-                    ${statusIcon}
-                `;
+                div.innerHTML = '<div class="flex-grow"><h6 class="text-sm font-semibold">' + pollingCenterName + '</h6><p class="text-xs text-gray-500">' + (session.district_name || 'N/A') + ', ' + (session.constituency_name || 'N/A') + '</p></div>' + statusIcon;
                 div.onclick = () => loadSession(session.session_id);
                 submissionsList.appendChild(div);
             });
         }
+
+        // Restore the active submission if it still exists in the new list
+        if (activeSessionId) {
+            const newActiveItem = document.querySelector(`.submission-item[data-id="${activeSessionId}"]`);
+            if (newActiveItem) {
+                newActiveItem.classList.add('active');
+            } else {
+                // If the previously active item is no longer in the list (e.g., it was verified and filtered out)
+                submissionDetails.classList.add("hidden");
+                noSubmissionMessage.classList.remove("hidden");
+            }
+        }
     }
 
-    // Load details for a specific submission session
     async function loadSession(sessionId) {
         showLoading(true);
-        const data = await fetchData(`http://localhost:8000/api/submissions/${sessionId}`);
+        const data = await fetchData('https://miwalletmw.com:8000/api/submissions/' + sessionId);
         showLoading(false);
         if (data.length === 0) {
             submissionDetails.classList.add("hidden");
@@ -213,61 +214,57 @@ document.addEventListener("DOMContentLoaded", () => {
         currentElection = data[0];
 
         const pollingCenterInfo = currentSession[0].polling_center_name || 'N/A';
-        document.getElementById("polling-center-title").innerText = `Audit for ${pollingCenterInfo}`;
-        
-        const monitorName = currentSession[0]?.monitor_name || 'N/A';
-        document.getElementById("monitor-info").innerText = `Monitor: ${monitorName}`;
-        
+        document.getElementById("polling-center-title").innerText = 'Audit for ' + pollingCenterInfo;
+
+        const monitorName = currentSession[0].monitor_name || 'N/A';
+        document.getElementById("monitor-info").innerText = 'Monitor: ' + monitorName;
+
         renderElectionTabs(data);
         loadElectionResult(currentElection);
 
         submissionDetails.classList.remove("hidden");
         noSubmissionMessage.classList.add("hidden");
-        
+
         document.querySelectorAll('.submission-item').forEach(item => {
-            if (item.dataset.id === sessionId) {
-                item.classList.add('active');
-            } else {
-                item.classList.remove('active');
-            }
+            if (item.dataset.id === sessionId) item.classList.add('active');
+            else item.classList.remove('active');
         });
     }
 
     function renderElectionTabs(elections) {
         electionTabs.innerHTML = "";
-        elections.forEach((election, idx) => {
+        elections.forEach(election => {
             const btn = document.createElement("button");
-            const isVerified = election.is_verified === 1;
-            const isRejected = election.is_verified === 2;
-
-            btn.className = `tab-button py-2 px-4 rounded-full text-sm font-medium transition-colors duration-200`;
-            
-            if (isVerified) btn.classList.add('btn-success');
-            else if (isRejected) btn.classList.add('btn-danger');
-            else btn.classList.add(idx === 0 ? 'btn-primary' : 'btn-outline-primary');
-
+            btn.className = 'election-tab';
             btn.innerText = (election.election_type || "N/A").replace("_", " ").toUpperCase();
-            btn.disabled = isVerified || isRejected;
+            
+            // Set the base color class based on the status
+            if (election.is_verified === 1) {
+                btn.classList.add('verified');
+            } else if (election.is_verified === 2) {
+                btn.classList.add('rejected');
+            } else {
+                btn.classList.add('unverified');
+            }
+
+            // Set the active class if it's the current election
+            if (election.result_id === currentElection.result_id) {
+                btn.classList.add('active');
+            }
+
             btn.onclick = async () => {
                 showLoading(true);
                 currentElection = election;
                 await loadElectionResult(election);
-                updateTabButtons(btn);
+                
+                // Update active state of all tabs
+                Array.from(electionTabs.children).forEach(c => c.classList.remove('active'));
+                btn.classList.add('active');
+                
                 showLoading(false);
             };
             electionTabs.appendChild(btn);
         });
-    }
-
-    function updateTabButtons(activeBtn) {
-        Array.from(electionTabs.children).forEach(c => {
-            if (!c.classList.contains('btn-success') && !c.classList.contains('btn-danger')) {
-                c.classList.replace('btn-primary', 'btn-outline-primary');
-            }
-        });
-        if (!activeBtn.classList.contains('btn-success') && !activeBtn.classList.contains('btn-danger')) {
-            activeBtn.classList.replace('btn-outline-primary', 'btn-primary');
-        }
     }
 
     function loadElectionResult(result) {
@@ -275,7 +272,7 @@ document.addEventListener("DOMContentLoaded", () => {
         candidatesTable.innerHTML = "";
         (result.candidates || []).forEach(c => {
             const row = document.createElement("tr");
-            row.innerHTML = `<td class="py-2 px-4">${c.candidate_name || 'N/A'}</td><td class="py-2 px-4">${c.party || 'N/A'}</td><td class="py-2 px-4"><input type="number" class="w-20 p-1 border border-gray-300 rounded-md text-sm text-center" value="${c.votes_count}" data-candidate="${c.candidate_id}"></td>`;
+            row.innerHTML = '<td class="py-2 px-4">' + (c.candidate_name || 'N/A') + '</td><td class="py-2 px-4">' + (c.party || 'N/A') + '</td><td class="py-2 px-4"><input type="number" class="w-20 p-1 border border-gray-300 rounded-md text-sm text-center" value="' + c.votes_count + '" data-candidate="' + c.candidate_id + '"></td>';
             candidatesTable.appendChild(row);
         });
 
@@ -283,26 +280,28 @@ document.addEventListener("DOMContentLoaded", () => {
         document.getElementById("invalid-votes").value = result.invalid_votes;
         document.getElementById("unused-ballots").value = result.unused_ballots;
         document.getElementById("total-registered").value = result.total_registered_voters;
-        document.getElementById("tally-img").src = `data:image/jpeg;base64,${result.paper_result_image_base64}`;
+        document.getElementById("tally-img").src = 'data:image/jpeg;base64,' + result.paper_result_image_base64;
 
         if (result.is_verified === 1 || result.is_verified === 2) {
+            auditForm.classList.add('grayed-out');
             verifyBtn.disabled = true;
-            rejectBtn.disabled = true;
-            auditForm.querySelectorAll('input').forEach(input => input.disabled = true);
         } else {
+            auditForm.classList.remove('grayed-out');
             verifyBtn.disabled = false;
-            rejectBtn.disabled = false;
-            auditForm.querySelectorAll('input').forEach(input => input.disabled = false);
         }
     }
 
     auditForm.addEventListener("submit", async e => {
         e.preventDefault();
         if (!currentElection) return;
+        if (auditForm.classList.contains('grayed-out')) {
+            showMessage("This submission has already been verified or rejected.");
+            return;
+        }
 
         showLoading(true);
         const votes = [];
-        candidatesTable.querySelectorAll("input").forEach(input => 
+        candidatesTable.querySelectorAll("input").forEach(input =>
             votes.push({ candidate_id: input.dataset.candidate, votes_count: parseInt(input.value || 0) })
         );
 
@@ -312,24 +311,21 @@ document.addEventListener("DOMContentLoaded", () => {
             invalid_votes: parseInt(document.getElementById("invalid-votes").value),
             unused_ballots: parseInt(document.getElementById("unused-ballots").value),
             total_registered_voters: parseInt(document.getElementById("total-registered").value),
-            votes
+            votes,
+            status: "verified"
         };
 
         try {
-            const res = await fetch("http://localhost:8000/api/results/verify", { 
-                method: "POST", 
-                headers: { "Content-Type": "application/json" }, 
-                body: JSON.stringify(payload) 
+            const res = await fetch("https://miwalletmw.com:8000/api/results/verify", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify(payload)
             });
             const data = await res.json();
             showMessage(data.message, () => {
+                // After verifying a result, refresh the entire submissions list
                 loadSubmissions();
-                submissionDetails.classList.add("hidden");
-                noSubmissionMessage.classList.remove("hidden");
             });
-
-            const nextElection = currentSession.find(e => e.is_verified !== 1 && e.is_verified !== 2);
-            if (nextElection) loadElectionResult(nextElection);
         } catch {
             showMessage("An error occurred while verifying.");
         } finally {
@@ -337,26 +333,22 @@ document.addEventListener("DOMContentLoaded", () => {
         }
     });
 
-
     document.getElementById("close-btn").addEventListener("click", () => {
         submissionDetails.classList.add("hidden");
         noSubmissionMessage.classList.remove("hidden");
         currentSession = null;
         currentElection = null;
-        loadSubmissions(); // Refresh the list when closing the details view
+        loadSubmissions();
     });
 
-    // Initial load
     populateFilters();
     loadSubmissions();
 
-    // Automatic refresh function
     function autoRefreshSubmissions() {
         if (!currentSession) {
             loadSubmissions();
         }
     }
 
-    // Automatically refresh submissions every 30 seconds
     setInterval(autoRefreshSubmissions, 30000);
 });
