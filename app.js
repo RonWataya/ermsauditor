@@ -64,10 +64,8 @@ document.addEventListener("DOMContentLoaded", () => {
 
     let currentSession = null;
     let currentElection = null;
-    let previousSessionId = null;
 
     async function fetchData(url) {
-        showLoading(true);
         try {
             const res = await fetch(url);
             if (!res.ok) throw new Error('HTTP error! status: ' + res.status);
@@ -76,8 +74,6 @@ document.addEventListener("DOMContentLoaded", () => {
             console.error("Fetch error:", error);
             showMessage("An error occurred while fetching data.");
             return [];
-        } finally {
-            showLoading(false);
         }
     }
 
@@ -137,7 +133,7 @@ document.addEventListener("DOMContentLoaded", () => {
     }
 
     async function loadSubmissions(isRefresh = false) {
-        // Store the ID of the currently active session before refreshing
+        showLoading(true);
         const activeSessionItem = document.querySelector('.submission-item.active');
         const activeSessionId = activeSessionItem ? activeSessionItem.dataset.id : null;
 
@@ -152,6 +148,41 @@ document.addEventListener("DOMContentLoaded", () => {
         const params = new URLSearchParams(filters).toString();
         const submissions = await fetchData('https://miwalletmw.com:8000/api/submissions?' + params);
 
+        renderSubmissionsList(submissions, activeSessionId);
+        showLoading(false);
+    }
+
+    async function silentLoadSubmissions() {
+        const activeSessionItem = document.querySelector('.submission-item.active');
+        const activeSessionId = activeSessionItem ? activeSessionItem.dataset.id : null;
+
+        if (activeSessionId) {
+            // Do not refresh if a session is currently open to avoid disruption
+            return;
+        }
+
+        const filters = {
+            districtId: filterDistrict.value,
+            constituencyId: filterConstituency.value,
+            wardId: filterWard.value,
+            pollingCenterId: filterCenter.value,
+            status: filterStatus.value,
+            allowedDistricts: allowedDistricts.join(',')
+        };
+        const params = new URLSearchParams(filters).toString();
+        
+        try {
+            const res = await fetch('https://miwalletmw.com:8000/api/submissions?' + params);
+            if (!res.ok) throw new Error('HTTP error! status: ' + res.status);
+            const submissions = await res.json();
+            renderSubmissionsList(submissions, activeSessionId);
+        } catch (error) {
+            console.error("Silent fetch error:", error);
+            // Optionally add a non-intrusive notification here
+        }
+    }
+
+    function renderSubmissionsList(submissions, activeSessionId) {
         submissionsList.innerHTML = "";
         if (submissions.length === 0) {
             submissionsList.innerHTML = '<p class="text-center text-gray-500 p-4">No submissions found.</p>';
@@ -187,48 +218,49 @@ document.addEventListener("DOMContentLoaded", () => {
             });
         }
 
-        // Restore the active submission if it still exists in the new list
         if (activeSessionId) {
             const newActiveItem = document.querySelector(`.submission-item[data-id="${activeSessionId}"]`);
             if (newActiveItem) {
                 newActiveItem.classList.add('active');
             } else {
-                // If the previously active item is no longer in the list (e.g., it was verified and filtered out)
                 submissionDetails.classList.add("hidden");
                 noSubmissionMessage.classList.remove("hidden");
             }
         }
     }
-
+    
     async function loadSession(sessionId) {
         showLoading(true);
-        const data = await fetchData('https://miwalletmw.com:8000/api/submissions/' + sessionId);
-        showLoading(false);
-        if (data.length === 0) {
-            submissionDetails.classList.add("hidden");
-            noSubmissionMessage.classList.remove("hidden");
-            return;
+        try {
+            const data = await fetchData('https://miwalletmw.com:8000/api/submissions/' + sessionId);
+
+            if (data.length === 0) {
+                submissionDetails.classList.add("hidden");
+                noSubmissionMessage.classList.remove("hidden");
+                return;
+            }
+
+            currentSession = data;
+            currentElection = data[0];
+
+            const pollingCenterInfo = currentSession[0].polling_center_name || 'N/A';
+            document.getElementById("polling-center-title").innerText = 'Audit for ' + pollingCenterInfo;
+            const monitorName = currentSession[0].monitor_name || 'N/A';
+            document.getElementById("monitor-info").innerText = 'Monitor: ' + monitorName;
+
+            renderElectionTabs(data);
+            loadElectionResult(currentElection);
+
+            submissionDetails.classList.remove("hidden");
+            noSubmissionMessage.classList.add("hidden");
+
+            document.querySelectorAll('.submission-item').forEach(item => {
+                if (item.dataset.id === sessionId) item.classList.add('active');
+                else item.classList.remove('active');
+            });
+        } finally {
+            showLoading(false);
         }
-
-        currentSession = data;
-        currentElection = data[0];
-
-        const pollingCenterInfo = currentSession[0].polling_center_name || 'N/A';
-        document.getElementById("polling-center-title").innerText = 'Audit for ' + pollingCenterInfo;
-
-        const monitorName = currentSession[0].monitor_name || 'N/A';
-        document.getElementById("monitor-info").innerText = 'Monitor: ' + monitorName;
-
-        renderElectionTabs(data);
-        loadElectionResult(currentElection);
-
-        submissionDetails.classList.remove("hidden");
-        noSubmissionMessage.classList.add("hidden");
-
-        document.querySelectorAll('.submission-item').forEach(item => {
-            if (item.dataset.id === sessionId) item.classList.add('active');
-            else item.classList.remove('active');
-        });
     }
 
     function renderElectionTabs(elections) {
@@ -252,16 +284,13 @@ document.addEventListener("DOMContentLoaded", () => {
                 btn.classList.add('active');
             }
 
-            btn.onclick = async () => {
-                showLoading(true);
+            btn.onclick = () => {
                 currentElection = election;
-                await loadElectionResult(election);
+                loadElectionResult(election);
                 
                 // Update active state of all tabs
                 Array.from(electionTabs.children).forEach(c => c.classList.remove('active'));
                 btn.classList.add('active');
-                
-                showLoading(false);
             };
             electionTabs.appendChild(btn);
         });
@@ -323,7 +352,6 @@ document.addEventListener("DOMContentLoaded", () => {
             });
             const data = await res.json();
             showMessage(data.message, () => {
-                // After verifying a result, refresh the entire submissions list
                 loadSubmissions();
             });
         } catch {
@@ -346,7 +374,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     function autoRefreshSubmissions() {
         if (!currentSession) {
-            loadSubmissions();
+            silentLoadSubmissions();
         }
     }
 

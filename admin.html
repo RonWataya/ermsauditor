@@ -16,11 +16,11 @@
       margin: 0;
     }
 
-    /* 🔹 Top navigation */
+    /* Top navigation */
     .navbar {
       background: #1a2a4b;
       color: white;
-      padding: 15px 30px;
+      padding: 15px 20px; /* Reduced padding for mobile */
       display: flex;
       justify-content: space-between;
       align-items: center;
@@ -28,7 +28,7 @@
     }
 
     .navbar h1 {
-      font-size: 1.4rem;
+      font-size: 1.2rem; /* Reduced font size for mobile */
       margin: 0;
       font-weight: 600;
     }
@@ -37,57 +37,61 @@
       background-color: #ef4444;
       color: white;
       border: none;
-      padding: 8px 16px;
+      padding: 6px 12px; /* Reduced padding for mobile */
       border-radius: 8px;
       cursor: pointer;
       font-weight: 600;
       transition: background 0.3s ease;
+      font-size: 0.9rem;
     }
     .navbar button:hover {
       background-color: #dc2626;
     }
 
-    /* 🔹 Main container */
+    /* Main container */
     .container {
       max-width: 1300px;
-      margin: 30px auto;
-      padding: 0 20px;
+      margin: 20px auto; /* Reduced margin for mobile */
+      padding: 0 15px; /* Reduced padding for mobile */
     }
 
     .dashboard-grid {
       display: grid;
-      grid-template-columns: 1fr 350px;
-      gap: 30px;
+      grid-template-columns: 1fr; /* Stack columns on mobile */
+      gap: 20px; /* Reduced gap for mobile */
     }
 
-    /* 🔹 Card style */
+    /* Card style */
     .card {
       background: #fff;
       border-radius: 14px;
       box-shadow: 0 6px 20px rgba(0,0,0,0.08);
-      padding: 20px 25px;
+      padding: 20px; /* Consistent padding */
     }
 
     .card h2 {
-      font-size: 1.2rem;
+      font-size: 1.1rem; /* Reduced font size */
       color: #1a2a4b;
       font-weight: 600;
       margin-bottom: 15px;
     }
 
-    /* 🔹 Filters */
+    /* Filters */
     .filters {
       display: flex;
-      flex-wrap: wrap;
-      gap: 20px;
+      flex-direction: column; /* Stack filters vertically on mobile */
+      gap: 15px; /* Reduced gap */
       margin-bottom: 20px;
     }
-
+    .filters button {
+      margin-top: 5px !important;
+      width: 100%;
+    }
     .filter-group {
       display: flex;
       flex-direction: column;
-      flex: 1;
-      min-width: 180px;
+      flex: none; /* Reset flex-grow to avoid uneven sizing */
+      min-width: auto;
     }
 
     .filters label {
@@ -113,7 +117,7 @@
       outline: none;
     }
 
-    /* 🔹 Buttons */
+    /* Buttons */
     #refresh-btn {
       padding: 10px 14px;
       border: none;
@@ -123,7 +127,6 @@
       cursor: pointer;
       transition: background-color 0.3s ease;
       font-size: 0.9rem;
-      margin-top: auto;
       display: flex;
       align-items: center;
       justify-content: center;
@@ -134,9 +137,10 @@
       background-color: #1d4ed8;
     }
 
-    /* 🔹 Results Table */
+    /* Results Table */
     .table-wrapper {
-      max-height: 400px;
+      max-height: 350px; /* Reduced height for mobile */
+      overflow-x: auto; /* Add horizontal scroll for small screens */
       overflow-y: auto;
       border-radius: 10px;
       border: 1px solid #e5e7eb;
@@ -145,11 +149,12 @@
     table {
       width: 100%;
       border-collapse: collapse;
-      font-size: 0.95rem;
+      font-size: 0.85rem; /* Reduced font size for mobile */
+      min-width: 500px; /* Ensure table doesn't get too narrow */
     }
 
     th, td {
-      padding: 12px 15px;
+      padding: 10px 12px; /* Reduced padding */
       text-align: left;
       border-bottom: 1px solid #f1f1f1;
     }
@@ -170,13 +175,16 @@
       background-color: #f1f5f9;
     }
 
-    /* 🔹 Chart */
+    /* Chart */
     .chart-container {
       display: flex;
       flex-direction: column;
       align-items: center;
     }
 
+    #presidential-pie-chart {
+      max-height: 300px; /* Constrain chart height on mobile */
+    }
     .no-data {
       text-align: center;
       padding: 30px;
@@ -184,20 +192,65 @@
       font-size: 0.95rem;
       font-style: italic;
     }
+
+    /* Desktop view: Media query for larger screens */
+    @media (min-width: 768px) {
+      .navbar h1 {
+        font-size: 1.4rem;
+      }
+      .navbar button {
+        padding: 8px 16px;
+        font-size: 1rem;
+      }
+      .container {
+        margin: 30px auto;
+        padding: 0 20px;
+      }
+      .dashboard-grid {
+        grid-template-columns: 1fr 350px; /* Restore original layout */
+        gap: 30px;
+      }
+      .card h2 {
+        font-size: 1.2rem;
+      }
+      .filters {
+        flex-direction: row; /* Restore horizontal layout */
+        gap: 20px;
+      }
+      .filters button {
+        margin-top: auto !important;
+        width: auto;
+      }
+      .filter-group {
+        flex: 1; /* Restore flex-grow */
+        min-width: 180px;
+      }
+      .table-wrapper {
+        max-height: 400px;
+        overflow-x: hidden;
+      }
+      table {
+        font-size: 0.95rem;
+        min-width: auto;
+      }
+      th, td {
+        padding: 12px 15px;
+      }
+      #presidential-pie-chart {
+        max-height: none;
+      }
+    }
   </style>
 </head>
 <body>
-  <!-- 🔹 Top Navbar -->
-  <div class="navbar">
-    <h1>Elections Management Dashboard</h1>
+    <div class="navbar">
+    <h1>Elections Dashboard</h1>
     <button id="logout-btn"><i class="fas fa-sign-out-alt"></i> Logout</button>
   </div>
 
-  <!-- 🔹 Main Content -->
-  <div class="container">
+    <div class="container">
     <div class="dashboard-grid">
-      <!-- Left: Filters & Results -->
-      <div>
+            <div>
         <div class="card">
           <h2>Filters</h2>
           <div class="filters">
@@ -221,7 +274,7 @@
                 <option value="local_government" disabled>Local Government</option>
               </select>
             </div>
-            <div class="filter-group" style="flex: 0 0 120px;">
+            <div class="filter-group">
               <label>&nbsp;</label>
               <button id="refresh-btn"><i class="fas fa-sync-alt"></i> Refresh</button>
             </div>
@@ -236,8 +289,7 @@
         </div>
       </div>
 
-      <!-- Right: Chart -->
-      <div class="card chart-container">
+            <div class="card chart-container">
         <h2>Presidential Results Overview</h2>
         <canvas id="presidential-pie-chart"></canvas>
         <p class="no-data" id="chart-no-data" style="display: none;">No presidential data available.</p>
